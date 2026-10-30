@@ -114,9 +114,9 @@ static void cbuffer_write_ll(CBuff handle, void *data, uint32_t len)
         /** write the first chunk into the cbuffer */
         __memcpy(handle->write_ptr, dest, buffer_write_bytes_until_end(handle));
         /** update pointers and length for next write */
-        handle->write_ptr = handle->buffer_start;
         len -= buffer_write_bytes_until_end(handle);
         dest += buffer_write_bytes_until_end(handle);
+        handle->write_ptr = handle->buffer_start;
     }
 
     _memcpy(handle->write_ptr, dest, len);
@@ -135,9 +135,9 @@ static void cbuffer_read_ll(CBuff handle, void *data, uint32_t len)
         /** write the first chunk into the data buffer */
         _memcpy(dest, handle->read_ptr, buffer_read_bytes_until_end(handle));
         /** update the pointers and length for second read */
-        handle->read_ptr = handle->buffer_start;
         len -= buffer_read_bytes_until_end(handle);
         dest += buffer_read_bytes_until_end(handle);
+        handle->read_ptr = handle->buffer_start;
     }
 
     _memcpy(dest, handle->read_ptr, len);
