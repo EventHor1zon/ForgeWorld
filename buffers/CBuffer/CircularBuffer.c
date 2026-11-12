@@ -217,6 +217,13 @@ CBuff cbuffer_create(CBuffer_Handle_t *handle, CBuffer_init_t *init)
 {
     status_t err = STATUS_OK;
 
+    if(NULL == handle || 
+       NULL == init || 
+       NULL == init->buffer || 
+       0 == init->size) 
+    {
+        return NULL;
+    }
     handle->buffer_start = init->buffer;
     handle->buffer_end = (init->buffer + init->size);
     handle->buffer_len = init->size;
