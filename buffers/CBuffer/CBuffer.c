@@ -32,7 +32,7 @@
  *
  **/
 
-#include "./inc/CircularBuffer.h"
+#include "CBuffer.h"
 
 #include <stddef.h>
 #ifdef CONFIG_USE_EVENTS
@@ -54,15 +54,15 @@ static void cbuffer_read_ll(CBuff handle, void *data, uint32_t len);
 /****** Private Data ******************/
 
 /****** Private Functions *************/
-
-static void *__memcpy(void *dest, void *source, size_t size) __attribute__((weak))
+__attribute__((weak)) 
+ void *__memcpy(void *dest, void *source, size_t size) 
 {
     uint8_t *d = dest;
     const uint8_t *s = source;
     while (size--) {
         *d++ = *s++;
     };
-    return dest;
+    return d;
 }
 
 /** \return Number of free bytes left in buffer **/
@@ -284,16 +284,17 @@ status_t cbuffer_set_event_mask(CBuff handle, uint8_t event_mask)
 
 status_t cbuffer_write(CBuff handle, void *const data, uint32_t *wrt_len)
 {
-    if (wrt_len > handle->buffer_len) {
+    if (*wrt_len > handle->buffer_len) {
         return STATUS_ERR_INVALID_ARG;
     }
     if (!data || !handle) {
         return STATUS_ERR_NO_MEM;
     }
+  /**
     if (handle->sem && xSemaphoreTake(handle->sem, pdMS_TO_TICKS(CBUFFER_SEM_WAIT_MS)) != pdTRUE) {
         return STATUS_ERR_TIMEOUT;
     }
-
+**/
     uint32_t _len = (buffer_will_overwrite(handle, *wrt_len) && !handle->allow_overwrite)
                         ? buffer_free_bytes(handle)
                         : *wrt_len;
@@ -323,9 +324,9 @@ status_t cbuffer_write(CBuff handle, void *const data, uint32_t *wrt_len)
         }
     }
 #endif
-    if (handle->sem) {
+ /**   if (handle->sem) {
         xSemaphoreGive(handle->sem);
-    }
+    }**/
     *wrt_len = _len;
     return STATUS_OK;
 }
@@ -335,19 +336,20 @@ status_t cbuffer_read(CBuff handle, void *const buffer, uint32_t *length)
     if (!buffer) {
         return STATUS_ERR_NO_MEM;
     }
+  /**
     if (handle->sem && xSemaphoreTake(handle->sem, pdMS_TO_TICKS(CBUFFER_SEM_WAIT_MS)) != pdTRUE) {
         return STATUS_ERR_TIMEOUT;
     }
-
+**/
     uint32_t unread = buffer_unread_bytes(handle);
     uint32_t _len = (*length > unread) ? unread : *length;
 
     cbuffer_read_ll(handle, buffer, _len);
-
+/**
     if (handle->sem) {
         xSemaphoreGive(handle->sem);
     };
-
+**/
 #ifdef CONFIG_USE_EVENTS
 
     if (!ret && handle->use_events && buffer_unread_bytes(handle) < 1

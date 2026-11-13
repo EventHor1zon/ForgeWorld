@@ -11,14 +11,14 @@
 #define CBUFFER_SEMTAKE_TIMEOUT 200 /**< in ms, doesn't need to be big **/
 
 /********* Includes ********************/
-#include "port/error_types.h"
+#include <error_types.h>
 
 #include <stdint.h>
 
 /********* Definitions *****************/
 #define CBUFFER_SEM_WAIT_MS 100
 
-#ifdef CONFIG_USE_EVENTS
+#ifdef configuredSE_EVENTS
 #include "port/events.h"
 #define CONFIG_EVENTPOST_WAIT_MS 200
 
