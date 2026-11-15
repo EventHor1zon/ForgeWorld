@@ -12,7 +12,6 @@
 
 /********* Includes ********************/
 #include <error_types.h>
-
 #include <stdint.h>
 
 /********* Definitions *****************/
@@ -57,6 +56,7 @@ typedef struct CBuffer_Handle {
     void *write_ptr; /**< end of data in buffer **/
 
     uint32_t buffer_len;     /**< total length of buffer **/
+    /** TODO: Fix the name of this variable **/
     uint8_t allow_overwrite; /**< allow overwrite of unread data **/
 
 #ifdef CONFIG_USE_EVENTS
@@ -81,6 +81,32 @@ typedef struct CBuffer_init {
 /********** Types **********************/
 
 /******** Function Definitions *********/
+
+
+
+/** \return Number of free bytes left in buffer **/
+static inline uint32_t buffer_free_bytes(CBuff handle)
+{
+    uint32_t free = (handle->write_ptr >= handle->read_ptr) ?  // if write pointer is ahead of
+                                                              // read...
+                        (handle->buffer_end - handle->write_ptr)
+                            + (handle->read_ptr - handle->buffer_start)
+                                                           :           // go round the buffer
+                        (handle->read_ptr - handle->write_ptr);  // else go up to read-1
+    return free;
+}
+
+/** \return bytes available between read and write pointers **/
+static inline uint32_t buffer_unread_bytes(CBuff handle)
+{
+    uint32_t avail =
+        (handle->read_ptr > handle->write_ptr ? (
+             (handle->buffer_end - handle->read_ptr) + (handle->write_ptr - handle->buffer_start))
+                                              : (handle->write_ptr - handle->read_ptr));
+    return avail;
+}
+
+
 
 /**
  * \brief: Allocate a new circular buffer controller
@@ -116,29 +142,27 @@ status_t cbuffer_write(CBuff handle, void *const data, uint32_t *wrt_len);
 status_t cbuffer_read(CBuff handle, void *const buffer, uint32_t *length);
 
 /**
- * \brief: sets buffer contents to 0
- * \param handle see above
- * \return ESP_OK
+ * \brief Get number of bytes of available space(without overwriting) 
+ * \param handle - ptr to the cbuffer handle  
+ * \return number of empty bytes
  **/
-status_t cbuffer_clear(CBuff handle);
-
-/***
- * \brief resets the r/w pointer locations to start
- * \param handle see above
- * \return ESP_OK
- **/
-status_t cbuffer_reset_pointers(CBuff handle);
+uint32_t cbuffer_available_space(CBuff handle);
 
 /**
- *  \brief does the above 2 functions together
- *  \param handle see above
- *  \return ESP_OK
+ * \brief Get number of unread bytes in the buffer 
+ * \param handle - ptr to the cbuffer handle 
+ * \return number of unread bytes
  **/
-status_t cbuffer_reset_buffer(CBuff handle);
-
 uint32_t cbuffer_unread_bytes(CBuff handle);
 
-uint32_t cbuffer_available_space(CBuff handle);
+/**
+ * \brief: resets buffer contents to 0 
+ *         and read/write pointers to start
+ * \param handle see above
+ * \return ESP_OK
+ **/
+status_t cbuffer_reset(CBuff handle);
+
 
 #ifdef CONFIG_USE_EVENTS
 /**
