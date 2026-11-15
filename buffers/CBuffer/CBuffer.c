@@ -41,8 +41,6 @@
 
 /****** Function Prototypes ***********/
 
-static uint32_t buffer_free_bytes(CBuff handle);
-
 static uint8_t buffer_will_overwrite(CBuff handle, uint32_t incomming_sz);
 
 static void cbuffer_write_ll(CBuff handle, void *data, uint32_t length);
@@ -65,27 +63,6 @@ __attribute__((weak))
     return d;
 }
 
-/** \return Number of free bytes left in buffer **/
-static inline uint32_t buffer_free_bytes(CBuff handle)
-{
-    uint32_t free = (handle->write_ptr > handle->read_ptr) ?  // if write pointer is ahead of
-                                                              // read...
-                        (handle->buffer_end - handle->write_ptr)
-                            + ((handle->read_ptr - 1) - handle->buffer_start)
-                                                           :           // go round the buffer
-                        ((handle->read_ptr - 1) - handle->write_ptr);  // else go up to read-1
-    return free;
-}
-
-/** \return bytes available between read and write pointers **/
-inline uint32_t buffer_unread_bytes(CBuff handle)
-{
-    uint32_t avail =
-        (handle->read_ptr > handle->write_ptr ? (
-             (handle->buffer_end - handle->read_ptr) + ((handle->write_ptr) - handle->buffer_start))
-                                              : (handle->write_ptr - handle->read_ptr));
-    return avail;
-}
 
 /** \return Non-zero if write will overwrite unread data **/
 static inline uint8_t buffer_will_overwrite(CBuff handle, uint32_t incomming_sz)
@@ -110,7 +87,7 @@ static inline uint32_t buffer_read_bytes_until_end(CBuff handle)
 static void cbuffer_write_ll(CBuff handle, void *data, uint32_t len)
 {
     uint8_t *dest = data;
-    if (len > buffer_write_bytes_until_end(handle)) {
+    if (len >= buffer_write_bytes_until_end(handle)) {
         /** write the first chunk into the cbuffer */
         __memcpy(handle->write_ptr, dest, buffer_write_bytes_until_end(handle));
         /** update pointers and length for next write */
@@ -119,8 +96,10 @@ static void cbuffer_write_ll(CBuff handle, void *data, uint32_t len)
         handle->write_ptr = handle->buffer_start;
     }
 
-    __memcpy(handle->write_ptr, dest, len);
-    handle->write_ptr += len;
+    if(len > 0) {
+      __memcpy(handle->write_ptr, dest, len);
+      handle->write_ptr += len;
+    }
 }
 
 /**
@@ -362,6 +341,15 @@ status_t cbuffer_read(CBuff handle, void *const buffer, uint32_t *length)
     *length = _len;
     return STATUS_OK;
 }
+
+status_t cbuffer_reset(Cbuff handle)
+{
+    handle->read_ptr = handle->buffer_start;
+    handle->write_ptr = handle->buffer_start;
+    memset(handle->buffer_start, 0, handle->buffer_len);
+    return STATUS_OK;
+}
+
 
 uint32_t cbuffer_unread_bytes(CBuff handle)
 {
