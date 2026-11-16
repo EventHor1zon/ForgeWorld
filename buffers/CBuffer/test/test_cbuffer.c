@@ -111,6 +111,7 @@ void testCbufferWriteFullBuffer(void)
     cbuffer_write(buff, &fourbytes, &write_len);
   }
   /** assert we have wrapped around and are back at the start **/
+  TEST_ASSERT_EQUAL_UINT32(write_len, 4);
   TEST_ASSERT_EQUAL_PTR(buff->write_ptr, buff->buffer_start);
   TEST_ASSERT_EQUAL_UINT32(*(uint32_t *)&buffer[TEST_CBUFF_SIZE_BYTES-4], fourbytes);
 }
@@ -132,6 +133,21 @@ void testCbufferWriteFullBufferPlusOneAllowed(void)
   TEST_ASSERT_EQUAL_UINT32(*(uint32_t *)&buffer[0], fourbytes);
 }
 
+void testCbufferOverwriteFailsWhenNotAllowed(void)
+{
+  CBuff buff = cbuffer_create(&handle, &valid_init);
+  uint32_t fourbytes = 0xAABBCCDD;
+  uint32_t write_len = 4;
+
+  for(uint32_t i=0; i < (TEST_CBUFF_SIZE_BYTES / 4); i++) {
+    cbuffer_write(buff, &fourbytes, &write_len);
+  }
+  TEST_ASSERT_EQUAL_UINT32(write_len, 4);
+  fourbytes = 0xDEADBEEF;
+  cbuffer_write(buff, &fourbytes, &write_len);
+  TEST_ASSERT_EQUAL_UINT32(write_len, 0);
+  TEST_ASSERT_EQUAL_UINT32(*(uint32_t *)&buffer[0], 0xAABBCCDD);
+}
 
 int main(void) {
 
@@ -142,5 +158,7 @@ int main(void) {
   RUN_TEST(testCbufferWriteOneByte);
   RUN_TEST(testCBufferWriteReadOneByte);
   RUN_TEST(testCbufferWriteFullBuffer);
+  RUN_TEST(testCbufferWriteFullBufferPlusOneAllowed);
+  RUN_TEST(testCbufferOverwriteFailsWhenNotAllowed);
   return UNITY_END();
 }

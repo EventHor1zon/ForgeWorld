@@ -35,6 +35,7 @@
 #include "CBuffer.h"
 
 #include <stddef.h>
+#include <port_rtos.h>
 #ifdef CONFIG_USE_EVENTS
 #include "port/event.h"
 #endif
@@ -63,6 +64,17 @@ __attribute__((weak))
     return d;
 }
 
+__attribute__((weak)) 
+void __memset(void *tgt, uint8_t val, size_t size)
+{
+  uint8_t *ptr = tgt;
+  while(size--) {
+    *ptr = val;
+    ptr++;
+  }
+}
+
+#define memset __memset 
 
 /** \return Non-zero if write will overwrite unread data **/
 static inline uint8_t buffer_will_overwrite(CBuff handle, uint32_t incomming_sz)
@@ -110,7 +122,7 @@ static void cbuffer_write_ll(CBuff handle, void *data, uint32_t len)
 static void cbuffer_read_ll(CBuff handle, void *data, uint32_t len)
 {
     uint8_t *dest = data;
-    if (len > buffer_read_bytes_until_end(handle)) {
+    if (len >= buffer_read_bytes_until_end(handle)) {
         /** write the first chunk into the data buffer */
         __memcpy(dest, handle->read_ptr, buffer_read_bytes_until_end(handle));
         /** update the pointers and length for second read */
@@ -119,8 +131,10 @@ static void cbuffer_read_ll(CBuff handle, void *data, uint32_t len)
         handle->read_ptr = handle->buffer_start;
     }
 
-    __memcpy(dest, handle->read_ptr, len);
-    handle->read_ptr += len;
+    if(len > 0) {
+        __memcpy(dest, handle->read_ptr, len);
+        handle->read_ptr += len;
+    }
 }
 
 #ifdef CONFIG_USE_EVENTS
@@ -269,11 +283,9 @@ status_t cbuffer_write(CBuff handle, void *const data, uint32_t *wrt_len)
     if (!data || !handle) {
         return STATUS_ERR_NO_MEM;
     }
-  /**
-    if (handle->sem && xSemaphoreTake(handle->sem, pdMS_TO_TICKS(CBUFFER_SEM_WAIT_MS)) != pdTRUE) {
+    if (handle->sem && port_lock_resource(handle->sem, CBUFFER_SEM_WAIT_MS) != STATUS_OK) {
         return STATUS_ERR_TIMEOUT;
     }
-**/
     uint32_t _len = (buffer_will_overwrite(handle, *wrt_len) && !handle->allow_overwrite)
                         ? buffer_free_bytes(handle)
                         : *wrt_len;
@@ -303,9 +315,9 @@ status_t cbuffer_write(CBuff handle, void *const data, uint32_t *wrt_len)
         }
     }
 #endif
- /**   if (handle->sem) {
-        xSemaphoreGive(handle->sem);
-    }**/
+    if (handle->sem) {
+        port_unlock_resource(handle->sem);
+    }
     *wrt_len = _len;
     return STATUS_OK;
 }
@@ -315,20 +327,19 @@ status_t cbuffer_read(CBuff handle, void *const buffer, uint32_t *length)
     if (!buffer) {
         return STATUS_ERR_NO_MEM;
     }
-  /**
-    if (handle->sem && xSemaphoreTake(handle->sem, pdMS_TO_TICKS(CBUFFER_SEM_WAIT_MS)) != pdTRUE) {
+    
+    if (handle->sem && port_lock_resource(handle->sem, CBUFFER_SEM_WAIT_MS) != STATUS_OK) {
         return STATUS_ERR_TIMEOUT;
     }
-**/
+    
     uint32_t unread = buffer_unread_bytes(handle);
     uint32_t _len = (*length > unread) ? unread : *length;
 
     cbuffer_read_ll(handle, buffer, _len);
-/**
     if (handle->sem) {
-        xSemaphoreGive(handle->sem);
+        port_unlock_resource(handle->sem);
     };
-**/
+
 #ifdef CONFIG_USE_EVENTS
 
     if (!ret && handle->use_events && buffer_unread_bytes(handle) < 1
@@ -342,14 +353,13 @@ status_t cbuffer_read(CBuff handle, void *const buffer, uint32_t *length)
     return STATUS_OK;
 }
 
-status_t cbuffer_reset(Cbuff handle)
+status_t cbuffer_reset(CBuff handle)
 {
     handle->read_ptr = handle->buffer_start;
     handle->write_ptr = handle->buffer_start;
     memset(handle->buffer_start, 0, handle->buffer_len);
     return STATUS_OK;
 }
-
 
 uint32_t cbuffer_unread_bytes(CBuff handle)
 {

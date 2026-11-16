@@ -90,9 +90,9 @@ static inline uint32_t buffer_free_bytes(CBuff handle)
     uint32_t free = (handle->write_ptr >= handle->read_ptr) ?  // if write pointer is ahead of
                                                               // read...
                         (handle->buffer_end - handle->write_ptr)
-                            + (handle->read_ptr - handle->buffer_start)
+                            + ((handle->read_ptr - 1) - handle->buffer_start)
                                                            :           // go round the buffer
-                        (handle->read_ptr - handle->write_ptr);  // else go up to read-1
+                        ((handle->read_ptr - 1) - handle->write_ptr);  // else go up to read-1
     return free;
 }
 
