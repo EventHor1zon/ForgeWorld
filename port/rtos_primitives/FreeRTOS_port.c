@@ -25,29 +25,29 @@
 
 status_t port_lock_resource(locktype_t lock, uint32_t timeout)
 {
-    return STATUS_NOT_IMPLEMENTED;
+    return xSemaphoreTake(lock, timeout);
 }
 
-status_t __attribute__((weak)) port_unlock_resource(locktype_t lock)
+status_t port_unlock_resource(locktype_t lock)
 {
-    return STATUS_NOT_IMPLEMENTED;
+    return xSemaphoreGive(lock);
 }
 
-status_t __attribute__((weak))
-port_queue_get(queuetype_t queue, uint8_t *const buffer, uint32_t timeout)
+
+status_t port_queue_get(queuetype_t queue, uint8_t *const buffer, uint32_t timeout)
 {
-    return STATUS_NOT_IMPLEMENTED;
+    return xQueueReceive(queue, buffer, timeout);
 }
 
-status_t __attribute__((weak))
-port_queue_put(queuetype_t queue, const uint8_t *const buffer, uint32_t timeout)
+status_t port_queue_put(queuetype_t queue, const uint8_t *const buffer, uint32_t timeout)
 {
-    return STATUS_NOT_IMPLEMENTED;
+    return xQueueSend(queue, buffer, timeout);
 }
 
-status_t __attribute__((weak)) port_queue_get_len(queuetype_t queue, uint32_t *const len)
+status_t port_queue_get_len(queuetype_t queue, uint32_t *const len)
 {
-    return STATUS_NOT_IMPLEMENTED;
+    *len = uxQueueMessagesWaiting(queue);
+    return STATUS_OK;
 }
 
 status_t port_task_notify(tasktype_t task, const uint32_t notify_value, const uint32_t notify_type)

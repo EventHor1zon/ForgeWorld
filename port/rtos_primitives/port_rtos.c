@@ -23,12 +23,12 @@
 
 status_t __attribute__((weak)) port_lock_resource(locktype_t lock, uint32_t timeout)
 {
-    return STATUS_NOT_IMPLEMENTED;
+    return STATUS_OK;
 }
 
 status_t __attribute__((weak)) port_unlock_resource(locktype_t lock)
 {
-    return STATUS_NOT_IMPLEMENTED;
+    return STATUS_OK;
 }
 
 status_t __attribute__((weak))

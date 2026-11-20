@@ -13,7 +13,7 @@
 #define PORT_RTOS_H
 
 /** Includes **/
-#include "port/error_types.h"
+#include "../../error_types.h"
 #include "stdint.h"
 
 /** Defines **/
